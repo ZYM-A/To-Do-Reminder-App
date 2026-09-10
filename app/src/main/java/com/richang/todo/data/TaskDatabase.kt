@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /** Kept behind TaskStore's IO dispatcher and mutex; no database work on the UI thread. */
-class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 1) {
+class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE tasks (
             id TEXT PRIMARY KEY, title TEXT NOT NULL, note TEXT NOT NULL,
@@ -15,10 +15,37 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
             repeat_rule TEXT NOT NULL, completed INTEGER NOT NULL,
             last_notified INTEGER NOT NULL, revision INTEGER NOT NULL
         )""")
+        createAnniversaries(db)
     }
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        error("A database migration is required: $oldVersion -> $newVersion")
+        if (oldVersion < 2) createAnniversaries(db)
     }
+    private fun createAnniversaries(db: SQLiteDatabase) {
+        db.execSQL("""CREATE TABLE anniversaries (
+            id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL,
+            note TEXT NOT NULL, yearly INTEGER NOT NULL DEFAULT 0
+        )""")
+    }
+    fun allAnniversaries(): List<Anniversary> = readableDatabase.query("anniversaries", null, null, null, null, null, "event_date ASC, id ASC").use { cursor ->
+        buildList {
+            while (cursor.moveToNext()) add(Anniversary(
+                id = cursor.getString(cursor.getColumnIndexOrThrow("id")),
+                title = cursor.getString(cursor.getColumnIndexOrThrow("title")),
+                date = java.time.LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow("event_date"))),
+                note = cursor.getString(cursor.getColumnIndexOrThrow("note")),
+                yearly = cursor.getInt(cursor.getColumnIndexOrThrow("yearly")) == 1,
+            ))
+        }
+    }
+    fun saveAnniversary(anniversary: Anniversary) {
+        val entry = anniversary.validated()
+        val values = ContentValues().apply {
+            put("id", entry.id); put("title", entry.title); put("event_date", entry.date.toString())
+            put("note", entry.note); put("yearly", if (entry.yearly) 1 else 0)
+        }
+        check(writableDatabase.insertWithOnConflict("anniversaries", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) { "无法保存纪念日" }
+    }
+    fun deleteAnniversary(id: String) { writableDatabase.delete("anniversaries", "id = ?", arrayOf(id)) }
     fun all(): List<Task> = readableDatabase.query("tasks", null, null, null, null, null, "completed ASC, due_at ASC").use { cursor ->
         buildList { while (cursor.moveToNext()) add(cursor.task()) }
     }

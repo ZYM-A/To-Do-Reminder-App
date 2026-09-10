@@ -51,6 +51,7 @@ fun RichangApp(
     requestedTask: String?, onTaskOpened: () -> Unit,
 ) {
     val tasks by model.tasks.collectAsStateWithLifecycle()
+    val anniversaries by model.anniversaries.collectAsStateWithLifecycle()
     val loading by model.loading.collectAsStateWithLifecycle()
     val busy by model.busy.collectAsStateWithLifecycle()
     val error by model.error.collectAsStateWithLifecycle()
@@ -59,13 +60,15 @@ fun RichangApp(
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var editorId by rememberSaveable { mutableStateOf<String?>(null) }
     var showEditor by rememberSaveable { mutableStateOf(false) }
+    var anniversaryId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showAnniversaryEditor by rememberSaveable { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(15_000) } }
     val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
     val snack = remember { SnackbarHostState() }
-    LaunchedEffect(error, showEditor) {
-        if (error != null && !showEditor) { snack.showSnackbar(error!!); model.clearError() }
+    LaunchedEffect(error, showEditor, showAnniversaryEditor) {
+        if (error != null && !showEditor && !showAnniversaryEditor) { snack.showSnackbar(error!!); model.clearError() }
     }
     LaunchedEffect(requestedTask, loading) {
         if (requestedTask != null && !loading) {
@@ -74,7 +77,11 @@ fun RichangApp(
             onTaskOpened()
         }
     }
-    fun addTask() { model.clearError(); editorId = null; showEditor = true }
+    fun addTask() {
+        model.clearError()
+        if (tab == 3) { anniversaryId = null; showAnniversaryEditor = true }
+        else { editorId = null; showEditor = true }
+    }
     val day = if (tab == 1) LocalDate.parse(selectedDate) else today
     val shown = when (tab) {
         0 -> tasks.filter { !it.completed && it.dateTime().toLocalDate() <= today }
@@ -87,12 +94,12 @@ fun RichangApp(
         snackbarHost = { SnackbarHost(snack) },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = ::addTask, containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text("添加待办") })
+                contentColor = MaterialTheme.colorScheme.onPrimary, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text(if (tab == 3) "添加纪念日" else "添加待办") })
         },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                val labels = listOf("今日", "日程", "全部")
-                val icons = listOf(Icons.Rounded.WbSunny, Icons.Rounded.CalendarMonth, Icons.AutoMirrored.Rounded.ListAlt)
+                val labels = listOf("今日", "日程", "全部", "纪念日")
+                val icons = listOf(Icons.Rounded.WbSunny, Icons.Rounded.CalendarMonth, Icons.AutoMirrored.Rounded.ListAlt, Icons.Rounded.FavoriteBorder)
                 labels.forEachIndexed { index, label ->
                     NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Icon(icons[index], label) }, label = { Text(label) })
                 }
@@ -106,7 +113,7 @@ fun RichangApp(
                         Column(Modifier.weight(1f)) {
                             Text("日 常  /  RICHANG", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                             Spacer(Modifier.height(8.dp))
-                            Text(listOf("把今天，安排好。", "留一点时间，给生活。", "每一件事，都有着落。")[tab], fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                            Text(listOf("把今天，安排好。", "留一点时间，给生活。", "每一件事，都有着落。", "记住，重要的日子。")[tab], fontSize = 26.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(6.dp))
                             Text(today.format(dateFormat), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                         }
@@ -116,58 +123,66 @@ fun RichangApp(
                     }
                     Spacer(Modifier.height(12.dp))
                 }
-                if (tab == 0) item {
-                    val count = tasks.count { !it.completed && it.dateTime().toLocalDate() <= today }
-                    val done = tasks.count { it.completed && it.dateTime().toLocalDate() == today }
-                    Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Pine, contentColor = Color.White)) {
-                        Column(Modifier.fillMaxWidth().padding(24.dp)) {
-                            Text("TODAY'S FOCUS", fontSize = 11.sp, letterSpacing = 2.sp, color = Color(0xFFCDDFD2))
-                            Spacer(Modifier.height(14.dp))
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(count.toString().padStart(2, '0'), fontSize = 52.sp, fontWeight = FontWeight.Light, lineHeight = 56.sp)
-                                Text("  件事，慢慢来", Modifier.padding(bottom = 8.dp), fontSize = 15.sp)
-                                Spacer(Modifier.weight(1f))
-                                Icon(Icons.Rounded.Spa, null, Modifier.size(44.dp), tint = Color(0xFFB5D0BA))
+                if (tab == 3) {
+                    anniversaryItems(anniversaries, today, loading) { entry ->
+                        model.clearError()
+                        anniversaryId = entry.id
+                        showAnniversaryEditor = true
+                    }
+                } else {
+                    if (tab == 0) item {
+                        val count = tasks.count { !it.completed && it.dateTime().toLocalDate() <= today }
+                        val done = tasks.count { it.completed && it.dateTime().toLocalDate() == today }
+                        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Pine, contentColor = Color.White)) {
+                            Column(Modifier.fillMaxWidth().padding(24.dp)) {
+                                Text("TODAY'S FOCUS", fontSize = 11.sp, letterSpacing = 2.sp, color = Color(0xFFCDDFD2))
+                                Spacer(Modifier.height(14.dp))
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(count.toString().padStart(2, '0'), fontSize = 52.sp, fontWeight = FontWeight.Light, lineHeight = 56.sp)
+                                    Text("  件事，慢慢来", Modifier.padding(bottom = 8.dp), fontSize = 15.sp)
+                                    Spacer(Modifier.weight(1f))
+                                    Icon(Icons.Rounded.Spa, null, Modifier.size(44.dp), tint = Color(0xFFB5D0BA))
+                                }
+                                Spacer(Modifier.height(14.dp))
+                                Text(if (count == 0) "今天的清单已清空，享受一点自己的时间。" else "专注眼前的一件事，就是很好的开始。", fontSize = 12.sp, color = Color(0xFFE2ECE5))
+                                if (done > 0) Text("今日安排已完成 $done 项", Modifier.padding(top = 8.dp), fontSize = 12.sp, color = Color(0xFFCDDFD2))
                             }
-                            Spacer(Modifier.height(14.dp))
-                            Text(if (count == 0) "今天的清单已清空，享受一点自己的时间。" else "专注眼前的一件事，就是很好的开始。", fontSize = 12.sp, color = Color(0xFFE2ECE5))
-                            if (done > 0) Text("今日安排已完成 $done 项", Modifier.padding(top = 8.dp), fontSize = 12.sp, color = Color(0xFFCDDFD2))
                         }
                     }
-                }
-                if (!notificationsAllowed || !exactAllowed) item {
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.NotificationsActive, null, Modifier.size(20.dp))
-                            Text(if (!notificationsAllowed) "开启通知，才能收到提醒" else "允许准时提醒，减少通知延迟", Modifier.weight(1f).padding(horizontal = 10.dp), fontSize = 12.sp)
-                            TextButton(onClick = if (!notificationsAllowed) onNotifications else onExact) { Text("开启") }
+                    if (!notificationsAllowed || !exactAllowed) item {
+                        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.NotificationsActive, null, Modifier.size(20.dp))
+                                Text(if (!notificationsAllowed) "开启通知，才能收到提醒" else "允许准时提醒，减少通知延迟", Modifier.weight(1f).padding(horizontal = 10.dp), fontSize = 12.sp)
+                                TextButton(onClick = if (!notificationsAllowed) onNotifications else onExact) { Text("开启") }
+                            }
                         }
                     }
-                }
-                if (tab == 1) item { CalendarPanel(day, tasks, onDate = { selectedDate = it.toString() }) }
-                if (tab == 2) item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FilterChip(selected = !completedFilter, onClick = { completedFilter = false }, label = { Text("待完成") })
-                        FilterChip(selected = completedFilter, onClick = { completedFilter = true }, label = { Text("已完成") })
+                    if (tab == 1) item { CalendarPanel(day, tasks, onDate = { selectedDate = it.toString() }) }
+                    if (tab == 2) item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            FilterChip(selected = !completedFilter, onClick = { completedFilter = false }, label = { Text("待完成") })
+                            FilterChip(selected = completedFilter, onClick = { completedFilter = true }, label = { Text("已完成") })
+                        }
                     }
-                }
-                item {
-                    Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (tab == 1) day.format(DateTimeFormatter.ofPattern("M月d日")) + "的安排" else if (tab == 2 && completedFilter) "已完成的事" else "待办清单", fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-                        Spacer(Modifier.weight(1f))
-                        Text("${shown.size} 项", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    item {
+                        Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (tab == 1) day.format(DateTimeFormatter.ofPattern("M月d日")) + "的安排" else if (tab == 2 && completedFilter) "已完成的事" else "待办清单", fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+                            Spacer(Modifier.weight(1f))
+                            Text("${shown.size} 项", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                }
-                if (loading) item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
-                else if (shown.isEmpty()) item {
-                    Column(Modifier.fillMaxWidth().padding(vertical = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.CheckCircleOutline, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(if (tab == 2 && completedFilter) "完成的任务会出现在这里" else "留白，也是生活的一部分", Modifier.padding(top = 16.dp), fontWeight = FontWeight.Medium)
-                        Text(if (tab == 2 && completedFilter) "从完成第一件小事开始" else "点下方「添加待办」，记下下一件事", Modifier.padding(top = 8.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (loading) item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+                    else if (shown.isEmpty()) item {
+                        Column(Modifier.fillMaxWidth().padding(vertical = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Rounded.CheckCircleOutline, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
+                            Text(if (tab == 2 && completedFilter) "完成的任务会出现在这里" else "留白，也是生活的一部分", Modifier.padding(top = 16.dp), fontWeight = FontWeight.Medium)
+                            Text(if (tab == 2 && completedFilter) "从完成第一件小事开始" else "点下方「添加待办」，记下下一件事", Modifier.padding(top = 8.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                }
-                items(shown, key = { it.id }) { task ->
-                    TaskCard(task, now, busy, onToggle = { model.toggle(task) }, onEdit = { model.clearError(); editorId = task.id; showEditor = true })
+                    items(shown, key = { it.id }) { task ->
+                        TaskCard(task, now, busy, onToggle = { model.toggle(task) }, onEdit = { model.clearError(); editorId = task.id; showEditor = true })
+                    }
                 }
             }
         }
@@ -179,6 +194,15 @@ fun RichangApp(
                 onDismiss = { if (!busy) { showEditor = false; model.clearError() } },
                 onSave = { model.clearError(); model.save(it) { showEditor = false } },
                 onDelete = { if (task != null) model.delete(task) { showEditor = false } })
+        }
+    }
+    if (showAnniversaryEditor && !loading) {
+        val entry = anniversaries.find { it.id == anniversaryId }
+        key(anniversaryId) {
+            AnniversaryEditor(entry, today, busy, error,
+                onDismiss = { if (!busy) { showAnniversaryEditor = false; model.clearError() } },
+                onSave = { model.clearError(); model.saveAnniversary(it) { showAnniversaryEditor = false } },
+                onDelete = { if (entry != null) model.deleteAnniversary(entry) { showAnniversaryEditor = false } })
         }
     }
     if (showSettings) AlertDialog(onDismissRequest = { showSettings = false }, title = { Text("提醒设置") },

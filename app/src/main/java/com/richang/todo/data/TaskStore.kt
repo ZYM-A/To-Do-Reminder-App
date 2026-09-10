@@ -12,9 +12,22 @@ class TaskStore(private val database: TaskDatabase, private val scheduler: Remin
     private val mutex = Mutex()
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks = _tasks.asStateFlow()
+    private val _anniversaries = MutableStateFlow<List<Anniversary>>(emptyList())
+    val anniversaries = _anniversaries.asStateFlow()
 
     private suspend fun <T> locked(block: () -> T): T = withContext(Dispatchers.IO) { mutex.withLock { block() } }
-    private fun refresh() { _tasks.value = database.all() }
+    private fun refresh() {
+        _tasks.value = database.all()
+        _anniversaries.value = database.allAnniversaries()
+    }
+    suspend fun saveAnniversary(entry: Anniversary) = locked {
+        database.saveAnniversary(entry)
+        refresh()
+    }
+    suspend fun deleteAnniversary(id: String) = locked {
+        database.deleteAnniversary(id)
+        refresh()
+    }
 
     suspend fun reload() = locked {
         refresh()

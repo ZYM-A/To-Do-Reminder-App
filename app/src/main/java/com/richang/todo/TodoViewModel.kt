@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.richang.todo.data.Task
+import com.richang.todo.data.Anniversary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val store = (application as TodoApplication).store
     val tasks = store.tasks
+    val anniversaries = store.anniversaries
     private val _loading = MutableStateFlow(true)
     val loading = _loading.asStateFlow()
     private val _busy = MutableStateFlow(false)
@@ -36,5 +38,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun save(task: Task, onSaved: () -> Unit) = mutate { store.save(task); onSaved() }
     fun toggle(task: Task) = mutate { store.toggle(task.id) }
     fun delete(task: Task, onDeleted: () -> Unit) = mutate { store.delete(task.id); onDeleted() }
+    fun saveAnniversary(entry: Anniversary, onSaved: () -> Unit) = mutate { store.saveAnniversary(entry); onSaved() }
+    fun deleteAnniversary(entry: Anniversary, onDeleted: () -> Unit) = mutate { store.deleteAnniversary(entry.id); onDeleted() }
     fun clearError() { _error.value = null }
 }

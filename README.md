@@ -5,7 +5,7 @@
 ## 下载测试版
 
 - [版本发布与 APK 下载](https://github.com/ZYM-A/To-Do-Reminder-App/releases)
-- [v0.1.0 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.1.0/richang-v0.1.0-debug.apk)
+- [v0.2.0 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.2.0/richang-v0.2.0-debug.apk)
 - [更新记录](CHANGELOG.md)
 
 打开 Releases 中对应版本，在 Assets 中下载 `.apk` 文件。源码下载包不包含安装包；编译工具、缓存、本机配置和签名密钥也不提交到仓库。
@@ -27,6 +27,18 @@ git push
 
 后续发布请先更新应用版本号和更新记录，完成构建与检查，再创建版本标签，将 APK 上传到对应 Release。当前是开发测试签名；持续覆盖安装需要保持签名密钥一致，密钥应安全保存在本机，不上传公开仓库。
 
+
+## 纪念日倒数（v0.2.0）
+
+底部选择 **纪念日 → 添加纪念日**，填写名称、日期和备注：
+
+- 未来日期显示“还有 N 天”，过去日期显示“已经 N 天”，当天显示“就是今天”。
+- 开启“每年重复”后倒数下一次纪念日，适合生日和周年纪念；原始日期仍会保留。
+- 2 月 29 日在平年按 2 月 28 日纪念，闰年恢复为 2 月 29 日。
+- 按手机时区下的公历自然日计数，今天为 0 天、明天为 1 天；暂不支持农历。
+- 纪念日只记录日期，不发送到点通知，现有待办提醒不受影响。
+- 点击卡片可修改或删除；数据保存在本机。数据库从 v1 升级到 v2 时仅添加纪念日表，保留原任务。
+- v0.2.0 沿用原测试签名，可以覆盖安装 v0.1.0，无需卸载。
 
 ## 已实现
 
@@ -116,7 +128,7 @@ app/src/main/java/com/richang/todo/
 - `lintDebug`：检查安卓 API 使用、资源和代码问题。
 - `connectedDebugAndroidTest`：需要连接测试手机或启动安卓模拟器；包含数据库重开后保存、更新、删除验证，使用测试包的数据库，不读取用户任务。
 
-实际已执行的检查和结果见 [验证记录](docs/VALIDATION.md)。
+当前版本的检查结果见 [v0.2.0 验证记录](docs/VALIDATION-v0.2.0.md)；[第一版验证记录](docs/VALIDATION.md) 另行保留。
 
 ## 官方参考
 
