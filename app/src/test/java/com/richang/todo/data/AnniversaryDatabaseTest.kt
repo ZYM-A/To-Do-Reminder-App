@@ -47,7 +47,7 @@ class AnniversaryDatabaseTest {
             assertEquals(oldTask, it.find(oldTask.id))
             assertTrue(it.allAnniversaries().isEmpty())
             it.saveAnniversary(Anniversary(title = "生日", date = LocalDate.of(2000, 2, 29), yearly = true))
-            assertEquals(2, it.readableDatabase.version)
+            assertEquals(3, it.readableDatabase.version)
             assertEquals(oldTask, it.find(oldTask.id))
         }
     }
@@ -75,4 +75,40 @@ class AnniversaryDatabaseTest {
             assertEquals(listOf(entry), it.allAnniversaries())
         }
     }
+
+    @Test fun upgradingVersionTwoPreservesAnniversaryAndDefaultsToSolar() {
+        val entry = Anniversary(id = "legacy", title = "旧纪念日", date = LocalDate.of(2020, 2, 29), note = "保留备注", yearly = true)
+        TaskDatabase(context).withDatabase {
+            it.save(Task(id = "kept-task", title = "已有待办", dueAt = 1_900_000_000_000))
+            // Recreate the exact v2 anniversary schema while retaining the original tasks table.
+            it.writableDatabase.execSQL("DROP TABLE anniversaries")
+            it.writableDatabase.execSQL("""CREATE TABLE anniversaries (
+                id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL,
+                note TEXT NOT NULL, yearly INTEGER NOT NULL DEFAULT 0
+            )""")
+            it.writableDatabase.execSQL("INSERT INTO anniversaries VALUES (?, ?, ?, ?, ?)",
+                arrayOf<Any>(entry.id, entry.title, entry.date.toString(), entry.note, 1))
+            it.writableDatabase.version = 2
+        }
+        TaskDatabase(context).withDatabase {
+            assertEquals(listOf(entry), it.allAnniversaries())
+            assertEquals(CalendarType.SOLAR, it.allAnniversaries().single().calendarType)
+            assertEquals("已有待办", it.find("kept-task")!!.title)
+            assertEquals(3, it.readableDatabase.version)
+        }
+    }
+
+    @Test fun lunarLeapDateAndCalendarChangesSurviveReopening() {
+        val entry = Anniversary(title = "闰月生日", date = LocalDate.of(2025, 7, 25), yearly = true, calendarType = CalendarType.LUNAR)
+        TaskDatabase(context).withDatabase { it.saveAnniversary(entry) }
+        TaskDatabase(context).withDatabase {
+            assertEquals(listOf(entry), it.allAnniversaries())
+            assertEquals(LunarDate(2025, -6, 1), LunarDates.fromSolar(it.allAnniversaries().single().date))
+            it.saveAnniversary(entry.copy(calendarType = CalendarType.SOLAR))
+        }
+        TaskDatabase(context).withDatabase {
+            assertEquals(listOf(entry.copy(calendarType = CalendarType.SOLAR)), it.allAnniversaries())
+        }
+    }
+
 }

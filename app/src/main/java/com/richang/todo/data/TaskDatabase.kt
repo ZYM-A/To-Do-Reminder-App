@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /** Kept behind TaskStore's IO dispatcher and mutex; no database work on the UI thread. */
-class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 2) {
+class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 3) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE tasks (
             id TEXT PRIMARY KEY, title TEXT NOT NULL, note TEXT NOT NULL,
@@ -19,11 +19,13 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
     }
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) createAnniversaries(db)
+        else if (oldVersion < 3) db.execSQL("ALTER TABLE anniversaries ADD COLUMN calendar_type TEXT NOT NULL DEFAULT 'SOLAR'")
     }
     private fun createAnniversaries(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE anniversaries (
             id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL,
-            note TEXT NOT NULL, yearly INTEGER NOT NULL DEFAULT 0
+            note TEXT NOT NULL, yearly INTEGER NOT NULL DEFAULT 0,
+            calendar_type TEXT NOT NULL DEFAULT 'SOLAR'
         )""")
     }
     fun allAnniversaries(): List<Anniversary> = readableDatabase.query("anniversaries", null, null, null, null, null, "event_date ASC, id ASC").use { cursor ->
@@ -34,6 +36,7 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
                 date = java.time.LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow("event_date"))),
                 note = cursor.getString(cursor.getColumnIndexOrThrow("note")),
                 yearly = cursor.getInt(cursor.getColumnIndexOrThrow("yearly")) == 1,
+                calendarType = CalendarType.valueOf(cursor.getString(cursor.getColumnIndexOrThrow("calendar_type"))),
             ))
         }
     }
@@ -42,6 +45,7 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
         val values = ContentValues().apply {
             put("id", entry.id); put("title", entry.title); put("event_date", entry.date.toString())
             put("note", entry.note); put("yearly", if (entry.yearly) 1 else 0)
+            put("calendar_type", entry.calendarType.name)
         }
         check(writableDatabase.insertWithOnConflict("anniversaries", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) { "无法保存纪念日" }
     }

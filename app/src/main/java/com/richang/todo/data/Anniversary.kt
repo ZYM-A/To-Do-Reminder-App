@@ -10,10 +10,13 @@ data class Anniversary(
     val date: LocalDate,
     val note: String = "",
     val yearly: Boolean = false,
+    val calendarType: CalendarType = CalendarType.SOLAR,
 ) {
     /** Count calendar days: today is zero, tomorrow is one, regardless of DST. */
     fun countdown(today: LocalDate): Countdown {
-        val target = if (!yearly || date >= today) date else {
+        val target = if (!yearly || date >= today) date else if (calendarType == CalendarType.LUNAR) {
+            LunarDates.nextAnnual(date, today)
+        } else {
             // Start from the original date so February 29 returns in leap years.
             val thisYear = date.withYear(today.year)
             if (thisYear >= today) thisYear else date.withYear(today.year + 1)
@@ -25,6 +28,7 @@ data class Anniversary(
         require(title.length <= 100) { "纪念日名称最多 100 字" }
         require(note.length <= 2000) { "备注最多 2000 字" }
         require(date.year in 1..9999) { "请选择有效日期" }
+        if (calendarType == CalendarType.LUNAR) require(LunarDates.selectable(date)) { "农历日期支持 1900—2100 年" }
         return copy(title = title.trim(), note = note.trim())
     }
 }
