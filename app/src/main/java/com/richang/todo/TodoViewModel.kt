@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.richang.todo.data.Task
 import com.richang.todo.data.Anniversary
+import com.richang.todo.data.DiaryEntry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val store = (application as TodoApplication).store
     val tasks = store.tasks
     val anniversaries = store.anniversaries
+    val diaries = store.diaries
     private val _loading = MutableStateFlow(true)
     val loading = _loading.asStateFlow()
     private val _busy = MutableStateFlow(false)
@@ -23,7 +25,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() { viewModelScope.launch {
         try { store.reload() }
-        catch (e: Exception) { if (e is CancellationException) throw e; _error.value = "读取任务失败，请重试" }
+        catch (e: Exception) { if (e is CancellationException) throw e; _error.value = "读取数据失败，请重试" }
         finally { _loading.value = false }
     } }
     private fun mutate(block: suspend () -> Unit) {
@@ -40,5 +42,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun delete(task: Task, onDeleted: () -> Unit) = mutate { store.delete(task.id); onDeleted() }
     fun saveAnniversary(entry: Anniversary, onSaved: () -> Unit) = mutate { store.saveAnniversary(entry); onSaved() }
     fun deleteAnniversary(entry: Anniversary, onDeleted: () -> Unit) = mutate { store.deleteAnniversary(entry.id); onDeleted() }
+    fun saveDiary(entry: DiaryEntry, onSaved: () -> Unit) = mutate { store.saveDiary(entry); onSaved() }
+    fun deleteDiary(entry: DiaryEntry, onDeleted: () -> Unit) = mutate { store.deleteDiary(entry.id); onDeleted() }
     fun clearError() { _error.value = null }
 }

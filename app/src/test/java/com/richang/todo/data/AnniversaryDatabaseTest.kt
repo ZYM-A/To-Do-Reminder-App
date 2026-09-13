@@ -47,7 +47,7 @@ class AnniversaryDatabaseTest {
             assertEquals(oldTask, it.find(oldTask.id))
             assertTrue(it.allAnniversaries().isEmpty())
             it.saveAnniversary(Anniversary(title = "生日", date = LocalDate.of(2000, 2, 29), yearly = true))
-            assertEquals(3, it.readableDatabase.version)
+            assertEquals(4, it.readableDatabase.version)
             assertEquals(oldTask, it.find(oldTask.id))
         }
     }
@@ -81,6 +81,7 @@ class AnniversaryDatabaseTest {
         TaskDatabase(context).withDatabase {
             it.save(Task(id = "kept-task", title = "已有待办", dueAt = 1_900_000_000_000))
             // Recreate the exact v2 anniversary schema while retaining the original tasks table.
+            it.writableDatabase.execSQL("DROP TABLE diaries")
             it.writableDatabase.execSQL("DROP TABLE anniversaries")
             it.writableDatabase.execSQL("""CREATE TABLE anniversaries (
                 id TEXT PRIMARY KEY, title TEXT NOT NULL, event_date TEXT NOT NULL,
@@ -94,7 +95,7 @@ class AnniversaryDatabaseTest {
             assertEquals(listOf(entry), it.allAnniversaries())
             assertEquals(CalendarType.SOLAR, it.allAnniversaries().single().calendarType)
             assertEquals("已有待办", it.find("kept-task")!!.title)
-            assertEquals(3, it.readableDatabase.version)
+            assertEquals(4, it.readableDatabase.version)
         }
     }
 

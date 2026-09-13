@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /** Kept behind TaskStore's IO dispatcher and mutex; no database work on the UI thread. */
-class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 3) {
+class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", null, 4) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE tasks (
             id TEXT PRIMARY KEY, title TEXT NOT NULL, note TEXT NOT NULL,
@@ -16,10 +16,12 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
             last_notified INTEGER NOT NULL, revision INTEGER NOT NULL
         )""")
         createAnniversaries(db)
+        createDiaries(db)
     }
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) createAnniversaries(db)
         else if (oldVersion < 3) db.execSQL("ALTER TABLE anniversaries ADD COLUMN calendar_type TEXT NOT NULL DEFAULT 'SOLAR'")
+        if (oldVersion < 4) createDiaries(db)
     }
     private fun createAnniversaries(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE anniversaries (
@@ -50,6 +52,42 @@ class TaskDatabase(context: Context) : SQLiteOpenHelper(context, "richang.db", n
         check(writableDatabase.insertWithOnConflict("anniversaries", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) { "无法保存纪念日" }
     }
     fun deleteAnniversary(id: String) { writableDatabase.delete("anniversaries", "id = ?", arrayOf(id)) }
+
+    private fun createDiaries(db: SQLiteDatabase) {
+        db.execSQL("""CREATE TABLE diaries (
+            id TEXT PRIMARY KEY, entry_date TEXT NOT NULL, title TEXT NOT NULL,
+            content TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+        )""")
+        db.execSQL("CREATE INDEX diaries_date ON diaries(entry_date DESC, updated_at DESC)")
+    }
+    fun allDiaries(): List<DiaryEntry> = readableDatabase.query("diaries", null, null, null, null, null,
+        "entry_date DESC, updated_at DESC, id ASC").use { cursor ->
+        buildList { while (cursor.moveToNext()) add(cursor.diary()) }
+    }
+    private fun findDiary(id: String): DiaryEntry? = readableDatabase.query("diaries", null, "id = ?", arrayOf(id), null, null, null).use {
+        if (it.moveToFirst()) it.diary() else null
+    }
+    fun saveDiary(draft: DiaryEntry) {
+        val entry = draft.validated()
+        val old = findDiary(entry.id)
+        val now = System.currentTimeMillis()
+        val values = ContentValues().apply {
+            put("id", entry.id); put("entry_date", entry.date.toString())
+            put("title", entry.title); put("content", entry.content)
+            put("created_at", old?.createdAt ?: now); put("updated_at", now)
+        }
+        check(writableDatabase.insertWithOnConflict("diaries", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) { "无法保存日记" }
+    }
+    fun deleteDiary(id: String) { writableDatabase.delete("diaries", "id = ?", arrayOf(id)) }
+    private fun Cursor.diary() = DiaryEntry(
+        id = getString(getColumnIndexOrThrow("id")),
+        date = java.time.LocalDate.parse(getString(getColumnIndexOrThrow("entry_date"))),
+        title = getString(getColumnIndexOrThrow("title")),
+        content = getString(getColumnIndexOrThrow("content")),
+        createdAt = getLong(getColumnIndexOrThrow("created_at")),
+        updatedAt = getLong(getColumnIndexOrThrow("updated_at")),
+    )
+
     fun all(): List<Task> = readableDatabase.query("tasks", null, null, null, null, null, "completed ASC, due_at ASC").use { cursor ->
         buildList { while (cursor.moveToNext()) add(cursor.task()) }
     }
