@@ -71,6 +71,7 @@ fun RichangApp(
     var showDiaryEditor by rememberSaveable { mutableStateOf(false) }
     var diaryQuery by rememberSaveable { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
+    var showCompanion by rememberSaveable { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(15_000) } }
     val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -82,7 +83,7 @@ fun RichangApp(
     }
     LaunchedEffect(requestedTask, loading, showDiaryEditor, showAnniversaryEditor) {
         if (requestedTask != null && !loading && !showDiaryEditor && !showAnniversaryEditor) {
-            if (tasks.any { it.id == requestedTask }) { section = 0; editorId = requestedTask; showEditor = true }
+            if (tasks.any { it.id == requestedTask }) { showCompanion = false; section = 0; editorId = requestedTask; showEditor = true }
             else snack.showSnackbar("该任务已删除")
             onTaskOpened()
         }
@@ -136,8 +137,14 @@ fun RichangApp(
                             Spacer(Modifier.height(6.dp))
                             Text(today.format(dateFormat), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                         }
-                        if (section == 0) IconButton(onClick = { showSettings = true }, modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape)) {
-                            Icon(Icons.Rounded.NotificationsNone, "提醒设置")
+                        Column(horizontalAlignment = Alignment.End) {
+                            IconButton(onClick = { showCompanion = true }, enabled = !busy,
+                                modifier = Modifier.testTag("companion-entry").background(MaterialTheme.colorScheme.primaryContainer, CircleShape)) {
+                                Icon(Icons.Rounded.FavoriteBorder, "AI 伴侣", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            if (section == 0) IconButton(onClick = { showSettings = true }, modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape)) {
+                                Icon(Icons.Rounded.NotificationsNone, "提醒设置")
+                            }
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -216,6 +223,7 @@ fun RichangApp(
             }
         }
     }
+    if (showCompanion) CompanionScreen(onDismiss = { showCompanion = false })
     if (showEditor && !loading) {
         val task = tasks.find { it.id == editorId }
         key(editorId) {

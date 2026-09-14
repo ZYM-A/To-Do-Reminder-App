@@ -86,4 +86,25 @@ class MainNavigationTest {
         val db = TaskDatabase(app)
         try { assertEquals("这一天值得记住", db.allDiaries().single().content) } finally { db.close() }
     }
+
+    @Test fun companionEntryReturnsToEachSectionAndPreservesScheduleFilter() {
+        open()
+        compose.onNodeWithTag("schedule-filter-2").performClick()
+        compose.onNodeWithTag("schedule-completed").performClick()
+        for (label in listOf("日程", "纪念日", "日记本")) {
+            compose.onNodeWithTag("nav-" + label).performClick()
+            compose.onNodeWithTag("companion-entry").performClick()
+            compose.onNodeWithTag("companion-page").assertExists()
+            compose.onNodeWithText("聊天功能尚未开放").assertExists()
+            compose.onNodeWithTag("companion-back").performClick()
+            compose.onNodeWithTag("companion-page").assertDoesNotExist()
+            compose.onNodeWithTag("nav-" + label).assertIsSelected()
+            compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag("main-navigation"))).assertCountEquals(3)
+        }
+        compose.onNodeWithTag("nav-日程").performClick()
+        compose.onNodeWithTag("schedule-filter-2").assertIsSelected()
+        compose.onNodeWithTag("schedule-completed").assertIsSelected()
+        compose.onNodeWithContentDescription("提醒设置").assertExists()
+    }
+
 }

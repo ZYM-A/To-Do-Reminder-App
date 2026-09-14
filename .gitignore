@@ -17,3 +17,15 @@ captures/
 !.env.example
 *.pem
 *.key
+
+# Local personal data and credentials
+private/
+secrets/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.p12
+*.pfx

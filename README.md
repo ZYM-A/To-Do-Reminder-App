@@ -5,7 +5,7 @@
 ## 下载测试版
 
 - [版本发布与 APK 下载](https://github.com/ZYM-A/To-Do-Reminder-App/releases)
-- [v0.4.0 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.4.0/richang-v0.4.0-debug.apk)
+- [v0.4.1 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.4.1/richang-v0.4.1-debug.apk)
 - [更新记录](CHANGELOG.md)
 
 打开 Releases 中对应版本，在 Assets 中下载 `.apk` 文件。源码下载包不包含安装包；编译工具、缓存、本机配置和签名密钥也不提交到仓库。
@@ -27,6 +27,12 @@ git push
 
 后续发布请先更新应用版本号和更新记录，完成构建与检查，再创建版本标签，将 APK 上传到对应 Release。当前是开发测试签名；持续覆盖安装需要保持签名密钥一致，密钥应安全保存在本机，不上传公开仓库。
 
+
+## AI 伴侣入口（v0.4.1）
+
+在任一主栏目首页右上角点爱心按钮（无障碍名称“AI 伴侣”），可打开独立伴侣页面。点返回会回到原栏目，保留待办筛选。底部仍为日程、纪念日和日记本三项。
+
+当前只完成入口与页面，明确显示“聊天功能尚未开放”。尚未接入模型、人设、聊天记录或记忆；该页面不读取日记或日程，不发送数据。
 
 ## 三栏导航与日记本（v0.4.0）
 
@@ -142,7 +148,7 @@ app/src/main/java/com/richang/todo/
 - `lintDebug`：检查安卓 API 使用、资源和代码问题。
 - `connectedDebugAndroidTest`：需要连接测试手机或启动安卓模拟器；包含数据库重开后保存、更新、删除验证，使用测试包的数据库，不读取用户任务。
 
-当前版本的检查结果见 [v0.4.0 验证记录](docs/VALIDATION-v0.4.0.md)；[第一版验证记录](docs/VALIDATION.md) 另行保留。
+当前版本的检查结果见 [v0.4.1 验证记录](docs/VALIDATION-v0.4.1.md)；[第一版验证记录](docs/VALIDATION.md) 另行保留。
 
 ## 官方参考
 
