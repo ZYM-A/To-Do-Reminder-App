@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.richang.todo.companion.CompanionViewModel
@@ -30,7 +28,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CompanionScreen(onDismiss: () -> Unit, model: CompanionViewModel = viewModel()) {
+internal fun CompanionScreen(onDismiss: () -> Unit, model: CompanionViewModel = viewModel(), insets: WindowInsets? = null) {
     val state by model.state.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf(false) }
     var personaEditor by remember { mutableStateOf(false) }
@@ -43,7 +41,7 @@ internal fun CompanionScreen(onDismiss: () -> Unit, model: CompanionViewModel = 
     LaunchedEffect(state.sessionId, messages.size, state.busy) {
         if (messages.isNotEmpty()) list.animateScrollToItem(messages.lastIndex)
     }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    CompanionDialog(onDismiss = onDismiss, insets = insets) {
         Scaffold(modifier = Modifier.fillMaxSize().testTag("companion-page"),
             topBar = {
                 TopAppBar(title = {
@@ -75,7 +73,7 @@ internal fun CompanionScreen(onDismiss: () -> Unit, model: CompanionViewModel = 
                 })
             },
             bottomBar = {
-                Column(Modifier.navigationBarsPadding().imePadding().padding(12.dp)) {
+                Column(Modifier.padding(12.dp)) {
                     state.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                     if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(bottom = 6.dp))
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

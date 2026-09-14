@@ -1,6 +1,5 @@
 package com.richang.todo.ui
 
-import android.view.WindowManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,14 +9,11 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.richang.todo.companion.ModelConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -41,13 +37,7 @@ internal fun ModelConfigEditor(
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val disabled = busy || fetching
-    Dialog(onDismissRequest = { if (!disabled) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = !disabled)) {
-        val view = LocalView.current
-        DisposableEffect(view) {
-            val window = (view.parent as? DialogWindowProvider)?.window
-            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
-        }
+    CompanionDialog(onDismiss = { if (!disabled) onDismiss() }, dismissOnBackPress = !disabled, securePolicy = SecureFlagPolicy.SecureOn) {
         Scaffold(topBar = {
             TopAppBar(title = { Text("模型设置") }, navigationIcon = { IconButton(onClick = onDismiss, enabled = !disabled) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } })
         }, bottomBar = {
@@ -55,7 +45,7 @@ internal fun ModelConfigEditor(
                 val checked = runCatching { ModelConfig(base, model, key).validated() }
                 error = checked.exceptionOrNull()?.message
                 checked.getOrNull()?.let(onSave)
-            }, enabled = !disabled, modifier = Modifier.navigationBarsPadding().imePadding().fillMaxWidth().padding(20.dp)) { Text("保存配置") }
+            }, enabled = !disabled, modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text("保存配置") }
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("使用你自己的服务商账户，费用由服务商收取。保存配置不会发起网络请求。")

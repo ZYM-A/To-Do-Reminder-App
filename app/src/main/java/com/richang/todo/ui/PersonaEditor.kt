@@ -12,8 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.richang.todo.companion.Persona
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +25,7 @@ internal fun PersonaEditor(persona: Persona, busy: Boolean, error: String?, onDi
     var discard by remember { mutableStateOf(false) }
     val draft = Persona(name, nickname, personality, style)
     fun close() { if (!busy) { if (draft != persona) discard = true else onDismiss() } }
-    Dialog(onDismissRequest = ::close, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = !busy)) {
+    CompanionDialog(onDismiss = ::close, dismissOnBackPress = !busy) {
         BackHandler(enabled = !busy, onBack = ::close)
         Scaffold(topBar = {
             TopAppBar(title = { Text("人设编辑") }, navigationIcon = { IconButton(onClick = ::close, enabled = !busy) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } })
@@ -36,7 +34,7 @@ internal fun PersonaEditor(persona: Persona, busy: Boolean, error: String?, onDi
                 val checked = runCatching { draft.validated() }
                 validation = checked.exceptionOrNull()?.message
                 checked.getOrNull()?.let(onSave)
-            }, enabled = !busy, modifier = Modifier.navigationBarsPadding().imePadding().fillMaxWidth().padding(20.dp)) { Text("保存人设") }
+            }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(20.dp)) { Text("保存人设") }
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("设置你喜欢的相处方式。保存只写入本机；聊天发送前会说明人设的分享范围。")

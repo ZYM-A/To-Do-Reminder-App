@@ -44,6 +44,7 @@ class CompanionEditorsTest {
         var saved: ModelConfig? = null
         var fetched = 0
         compose.setContent { RichangTheme { ModelConfigEditor(null, false, null, {}, { saved=it }, {}, { fetched++; emptyList() }) } }
+        compose.runOnIdle { assertTrue(org.robolectric.shadows.ShadowDialog.getLatestDialog().window!!.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0) }
         compose.onNodeWithTag("model-base").performTextInput("https://example.invalid/v1")
         compose.onNodeWithTag("model-key").performScrollTo().performTextInput("FAKE_TEST_TOKEN")
         compose.onNodeWithTag("model-key").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))

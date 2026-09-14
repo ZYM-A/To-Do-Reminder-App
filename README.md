@@ -5,7 +5,7 @@
 ## 下载测试版
 
 - [版本发布与 APK 下载](https://github.com/ZYM-A/To-Do-Reminder-App/releases)
-- [v0.5.0 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.5.0/richang-v0.5.0-debug.apk)
+- [v0.5.1 安装包](https://github.com/ZYM-A/To-Do-Reminder-App/releases/download/v0.5.1/richang-v0.5.1-debug.apk)
 - [更新记录](CHANGELOG.md)
 
 打开 Releases 中对应版本，在 Assets 中下载 `.apk` 文件。源码下载包不包含安装包；编译工具、缓存、本机配置和签名密钥也不提交到仓库。
@@ -166,7 +166,7 @@ app/src/main/java/com/richang/todo/
 - `lintDebug`：检查安卓 API 使用、资源和代码问题。
 - `connectedDebugAndroidTest`：需要连接测试手机或启动安卓模拟器；包含数据库重开后保存、更新、删除验证，使用测试包的数据库，不读取用户任务。
 
-当前版本的检查结果见 [v0.5.0 验证记录](docs/VALIDATION-v0.5.0.md)；[第一版验证记录](docs/VALIDATION.md) 另行保留。
+当前版本的检查结果见 [v0.5.1 验证记录](docs/VALIDATION-v0.5.1.md)；[第一版验证记录](docs/VALIDATION.md) 另行保留。
 
 ## 官方参考
 
