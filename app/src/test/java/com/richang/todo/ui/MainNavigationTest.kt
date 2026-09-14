@@ -24,7 +24,7 @@ class MainNavigationTest {
     private lateinit var model: TodoViewModel
     private val app get() = (RuntimeEnvironment.getApplication() as TodoApplication)
 
-    @Before fun before() { app.deleteDatabase("richang.db") }
+    @Before fun before() { app.deleteDatabase("richang.db"); app.deleteDatabase("companion.db") }
     private fun open(tasks: List<Task> = emptyList()) {
         val db = TaskDatabase(app)
         try { tasks.forEach(db::save) } finally { db.close() }
@@ -95,7 +95,8 @@ class MainNavigationTest {
             compose.onNodeWithTag("nav-" + label).performClick()
             compose.onNodeWithTag("companion-entry").performClick()
             compose.onNodeWithTag("companion-page").assertExists()
-            compose.onNodeWithText("聊天功能尚未开放").assertExists()
+            compose.waitUntil(timeoutMillis = 10_000) { org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); compose.onAllNodesWithText("配置模型").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("chat-input").assertExists()
             compose.onNodeWithTag("companion-back").performClick()
             compose.onNodeWithTag("companion-page").assertDoesNotExist()
             compose.onNodeWithTag("nav-" + label).assertIsSelected()
